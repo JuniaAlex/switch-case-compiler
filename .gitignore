@@ -1,0 +1,26 @@
+# Temporary build and preview output
+/build/
+/compiler/build/
+/frontend-preview.png
+
+# Reference snapshot
+/switch-case-compiler-main.zip
+
+# Python cache
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+archive/
+
+# Editor and OS files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Office lock files
+~$*.docx
+~$*.pptx
+~$*.xlsx

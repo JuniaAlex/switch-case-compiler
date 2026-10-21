@@ -1,0 +1,1142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SQL Mini Compiler — Project Presentation</title>
+  
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Urbanist:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400;1,600&display=swap" rel="stylesheet">
+  
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <style>
+    :root {
+      --bg: #f8fafc;
+      --card: #ffffff;
+      --text: #0f172a;
+      --text-muted: #64748b;
+      --text-dark: #334155;
+      --border: #e2e8f0;
+      --border-strong: #cbd5e1;
+      --primary: #0f172a;
+      --accent: #2563eb;
+      --accent-light: #eff6ff;
+      --success: #059669;
+      --success-light: #ecfdf5;
+      --warning: #d97706;
+      --warning-light: #fffbeb;
+      --error: #dc2626;
+      --error-light: #fef2f2;
+      --font-sans: 'Urbanist', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      --font-mono: 'JetBrains Mono', 'Fira Code', Consolas, monospace;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background: #0f172a;
+      font-family: var(--font-sans);
+      color: var(--text);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      overflow-x: hidden;
+      user-select: none;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* 16:9 Presentation Stage */
+    .deck-container {
+      position: relative;
+      width: 1333px;
+      height: 750px;
+      background: var(--bg);
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+      display: flex;
+      flex-direction: column;
+    }
+
+    .slide {
+      position: absolute;
+      inset: 0;
+      padding: 48px 56px 40px;
+      display: none;
+      flex-direction: column;
+      background: var(--bg);
+      opacity: 0;
+      transition: opacity 0.2s ease;
+    }
+
+    .slide.active {
+      display: flex;
+      opacity: 1;
+      z-index: 10;
+    }
+
+    /* Slide Header */
+    .slide-header {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      margin-bottom: 24px;
+      position: relative;
+    }
+
+    .slide-eyebrow {
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--accent);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .slide-title {
+      font-size: 1.85rem;
+      font-weight: 800;
+      letter-spacing: -0.025em;
+      color: var(--text);
+      line-height: 1.15;
+    }
+
+    .slide-subtitle {
+      font-size: 0.95rem;
+      color: var(--text-muted);
+      font-weight: 500;
+      margin-top: 2px;
+    }
+
+    .slide-header-line {
+      height: 1px;
+      background: var(--border);
+      width: 100%;
+      margin-top: 14px;
+    }
+
+    /* Slide Content Layouts */
+    .slide-body {
+      flex: 1;
+      display: flex;
+      gap: 28px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .col-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 28px;
+      width: 100%;
+      height: 100%;
+    }
+
+    .col-3 {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 22px;
+      width: 100%;
+      height: 100%;
+    }
+
+    .col-4 {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 18px;
+      width: 100%;
+      height: 100%;
+    }
+
+    /* Cards */
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .card-title {
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: var(--text);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .card-desc {
+      font-size: 0.88rem;
+      color: var(--text-dark);
+      line-height: 1.5;
+    }
+
+    /* Bullet List */
+    .bullet-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .bullet-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      font-size: 0.92rem;
+      line-height: 1.5;
+      color: var(--text-dark);
+    }
+
+    .bullet-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--accent);
+      margin-top: 7px;
+      flex-shrink: 0;
+    }
+
+    .bullet-lead {
+      font-weight: 700;
+      color: var(--text);
+    }
+
+    /* Badges & Pills */
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 3px 8px;
+      border-radius: 4px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      background: #f1f5f9;
+      color: #334155;
+      border: 1px solid var(--border);
+    }
+
+    .badge-primary { background: #eff6ff; color: #1d4ed8; border-color: #bfdbfe; }
+    .badge-success { background: var(--success-light); color: var(--success); border-color: #a7f3d0; }
+    .badge-warning { background: var(--warning-light); color: var(--warning); border-color: #fde68a; }
+    .badge-error { background: var(--error-light); color: var(--error); border-color: #fecaca; }
+
+    /* Code Box */
+    .code-box {
+      background: #ffffff;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 16px;
+      font-family: var(--font-mono);
+      font-size: 0.82rem;
+      color: #0f172a;
+      line-height: 1.55;
+      white-space: pre;
+      overflow-x: auto;
+    }
+
+    /* Step Pipeline Graphic */
+    .pipeline-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+      width: 100%;
+    }
+
+    .pipeline-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      position: relative;
+    }
+
+    .pipeline-card-num {
+      width: 28px;
+      height: 28px;
+      border-radius: 6px;
+      background: #0f172a;
+      color: #ffffff;
+      font-size: 0.78rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .pipeline-card-title {
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: var(--text);
+    }
+
+    .pipeline-card-desc {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      line-height: 1.45;
+    }
+
+    /* Image Preview Container */
+    .img-preview-box {
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+      background: #ffffff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      height: 100%;
+    }
+
+    .img-preview-box img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+
+    /* Slide Footer */
+    .slide-footer {
+      height: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-top: 1px solid var(--border);
+      margin-top: 16px;
+      padding-top: 10px;
+      font-size: 0.72rem;
+      color: var(--text-muted);
+    }
+
+    /* Cover Slide Specifics */
+    .cover-layout {
+      display: grid;
+      grid-template-columns: 1.2fr 1fr;
+      gap: 36px;
+      align-items: center;
+      height: 100%;
+    }
+
+    .cover-title {
+      font-size: 3.2rem;
+      font-weight: 800;
+      letter-spacing: -0.035em;
+      line-height: 1.05;
+      color: var(--text);
+      margin-bottom: 12px;
+    }
+
+    .cover-tagline {
+      font-size: 1.25rem;
+      font-weight: 600;
+      color: #334155;
+      margin-bottom: 16px;
+    }
+
+    .cover-desc {
+      font-size: 0.92rem;
+      color: var(--text-muted);
+      line-height: 1.6;
+      margin-bottom: 24px;
+    }
+
+    .cover-tags {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    /* Floating Navigation Controls */
+    .nav-bar {
+      margin-top: 16px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      color: #94a3b8;
+      font-size: 0.85rem;
+    }
+
+    .nav-btn {
+      background: #1e293b;
+      color: #ffffff;
+      border: 1px solid #334155;
+      padding: 6px 14px;
+      border-radius: 6px;
+      font-family: var(--font-sans);
+      font-size: 0.8rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: background 0.15s ease;
+    }
+
+    .nav-btn:hover {
+      background: #334155;
+    }
+
+    /* Print / PDF layout */
+    @media print {
+      body {
+        background: transparent !important;
+        margin: 0 !important;
+        padding: 0 !important;
+      }
+      .nav-bar {
+        display: none !important;
+      }
+      .deck-container {
+        box-shadow: none !important;
+        border-radius: 0 !important;
+        width: 100% !important;
+        height: auto !important;
+        display: block !important;
+      }
+      .slide {
+        display: flex !important;
+        opacity: 1 !important;
+        position: relative !important;
+        width: 1333px !important;
+        height: 750px !important;
+        page-break-after: always !important;
+        page-break-inside: avoid !important;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Main Presentation Deck Container -->
+  <main class="deck-container" id="deck">
+
+    <!-- Slide 1: Cover -->
+    <section class="slide active" id="slide-1">
+      <div class="cover-layout">
+        <div>
+          <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 16px;">
+            <img src="assets/mascot_compiler.jpg" alt="Compiler Mascot" style="width: 36px; height: 36px; border-radius: 50%; border: 1px solid var(--border); box-shadow: 0 1px 3px rgba(0,0,0,0.08);">
+            <div class="badge badge-primary">
+              <i data-lucide="terminal" style="width: 12px; height: 12px;"></i>
+              Compiler Design Project
+            </div>
+          </div>
+          <h1 class="cover-title">SQL Mini<br>Compiler</h1>
+          <p class="cover-tagline">Single-Engine Native Front-End for SQL Validation</p>
+          <p class="cover-desc">
+            An end-to-end SQL analysis pipeline featuring a Flex scanner, Bison LALR(1) grammar, AST synthesis, and catalog-aware semantic verification in native C11 with an isolated Python bridge.
+          </p>
+          <div class="cover-tags">
+            <span class="badge"><i data-lucide="scan" style="width: 12px; height: 12px;"></i> Flex Scanner</span>
+            <span class="badge"><i data-lucide="file-code-2" style="width: 12px; height: 12px;"></i> Bison LALR(1)</span>
+            <span class="badge"><i data-lucide="shield-check" style="width: 12px; height: 12px;"></i> C11 Semantics</span>
+            <span class="badge"><i data-lucide="cpu" style="width: 12px; height: 12px;"></i> Python Bridge</span>
+            <span class="badge badge-success"><i data-lucide="check" style="width: 12px; height: 12px;"></i> 79/79 Passed</span>
+          </div>
+        </div>
+
+        <div class="card" style="height: 100%; justify-content: space-between;">
+          <div>
+            <div class="card-title">
+              <i data-lucide="layers" style="width: 18px; height: 18px; color: #2563eb;"></i>
+              Query Demonstration
+            </div>
+            <pre class="code-box" style="margin-top: 12px;">SELECT s.name AS student_name,
+       c.title, e.grade
+FROM students s,
+     enrollments e,
+     courses c
+WHERE s.student_id = e.student_id
+  AND e.course_id = c.course_id
+  AND s.cgpa >= 7.5
+ORDER BY s.cgpa DESC, s.name;</pre>
+          </div>
+          <div style="border-top: 1px solid var(--border); padding-top: 12px; display: flex; justify-content: space-between; align-items: center;">
+            <span style="font-size: 0.78rem; color: var(--text-muted);">Validation Only &middot; Subprocess Isolated</span>
+            <span class="badge badge-success">Result: VALID</span>
+          </div>
+        </div>
+      </div>
+      <div class="slide-footer">
+        <span>SQL Mini Compiler &middot; Presentation Deck</span>
+        <span>01 / 16</span>
+      </div>
+    </section>
+
+    <!-- Slide 2: Motivation -->
+    <section class="slide" id="slide-2">
+      <div class="slide-header">
+        <span class="slide-eyebrow"><i data-lucide="compass" style="width: 13px; height: 13px;"></i> 01 | Motivation</span>
+        <h2 class="slide-title">Why Build a Dedicated SQL Front-End?</h2>
+        <p class="slide-subtitle">SQL is declarative; query validation is a rigorous compiler problem.</p>
+        <div class="slide-header-line"></div>
+      </div>
+      <div class="slide-body">
+        <div class="col-2">
+          <div class="card">
+            <div class="card-title"><i data-lucide="target" style="width: 18px; height: 18px; color: #2563eb;"></i> Core Engineering Motivations</div>
+            <ul class="bullet-list">
+              <li class="bullet-item">
+                <span class="bullet-dot"></span>
+                <div><span class="bullet-lead">Syntax vs Semantics:</span> A query can be syntactically immaculate yet completely invalid (e.g. unknown table, ambiguous column, type mismatch).</div>
+              </li>
+              <li class="bullet-item">
+                <span class="bullet-dot"></span>
+                <div><span class="bullet-lead">Phase Transparency:</span> Demonstrates each compiler phase in full visibility: deterministic lexing, shift-reduce parsing, AST generation, and catalog resolution.</div>
+              </li>
+              <li class="bullet-item">
+                <span class="bullet-dot"></span>
+                <div><span class="bullet-lead">Scope & Ambiguity:</span> Table aliasing and multi-table queries create complex scoping rules requiring robust symbol tables.</div>
+              </li>
+              <li class="bullet-item">
+                <span class="bullet-dot"></span>
+                <div><span class="bullet-lead">Single Source of Truth:</span> Eliminates dummy regex or duplicate parser mockups in the web tier.</div>
+              </li>
+            </ul>
+          </div>
+
+          <div class="card" style="background: #ffffff; justify-content: space-between; align-items: center; text-align: center; padding: 24px;">
+            <img src="assets/mascot_compiler.jpg" alt="Compiler Mascot" style="height: 250px; width: 250px; object-fit: contain; border-radius: 12px;">
+            <div style="background: #f8fafc; border: 1px solid var(--border); border-radius: 8px; padding: 14px 18px; width: 100%;">
+              <span class="badge badge-primary" style="margin-bottom: 6px;">The Core Design Question</span>
+              <h4 style="font-size: 1.1rem; font-weight: 700; color: #0f172a; margin-bottom: 4px;">
+                "How to keep a web demo 100% honest when the compiler is in native C?"
+              </h4>
+              <p style="font-size: 0.85rem; color: var(--text-dark);">
+                Answer: One native C11 binary. The Python bridge only shuttles stdin/stdout.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="slide-footer">
+        <span>SQL Mini Compiler &middot; Motivation</span>
+        <span>02 / 16</span>
+      </div>
+    </section>
+
+    <!-- Slide 3: Scope -->
+    <section class="slide" id="slide-3">
+      <div class="slide-header">
+        <span class="slide-eyebrow"><i data-lucide="sliders" style="width: 13px; height: 13px;"></i> 02 | Project Scope</span>
+        <h2 class="slide-title">Deliberate & Rigorous Language Boundaries</h2>
+        <p class="slide-subtitle">Small enough to formally verify; rich enough to exercise complete compiler phases.</p>
+        <div class="slide-header-line"></div>
+      </div>
+      <div class="slide-body">
+        <div class="col-2">
+          <div class="card" style="border-left: 3px solid var(--success);">
+            <div class="card-title" style="color: var(--success);"><i data-lucide="check-circle-2" style="width: 18px; height: 18px;"></i> In Scope (Supported Subset)</div>
+            <ul class="bullet-list">
+              <li class="bullet-item"><span class="bullet-dot" style="background: var(--success);"></span><div><code>SELECT [DISTINCT]</code> with star projection, expressions, and aliases.</div></li>
+              <li class="bullet-item"><span class="bullet-dot" style="background: var(--success);"></span><div><code>FROM</code> clause with 1+ tables and explicit table aliases.</div></li>
+              <li class="bullet-item"><span class="bullet-dot" style="background: var(--success);"></span><div><code>WHERE</code> with <code>AND</code>, <code>OR</code>, <code>NOT</code>, arithmetic, comparisons.</div></li>
+              <li class="bullet-item"><span class="bullet-dot" style="background: var(--success);"></span><div>Predicates: <code>LIKE</code>, <code>IN (...)</code>, <code>BETWEEN ... AND</code>, <code>IS [NOT] NULL</code>.</div></li>
+              <li class="bullet-item"><span class="bullet-dot" style="background: var(--success);"></span><div><code>ORDER BY</code> with select aliases, column references, ordinals, <code>ASC/DESC</code>.</div></li>
+              <li class="bullet-item"><span class="bullet-dot" style="background: var(--success);"></span><div>4-table catalog schema (students, courses, enrollments, departments).</div></li>
+            </ul>
+          </div>
+
+          <div class="card" style="border-left: 3px solid #64748b;">
+            <div class="card-title" style="color: #64748b;"><i data-lucide="x-circle" style="width: 18px; height: 18px;"></i> Out of Scope (By Design)</div>
+            <ul class="bullet-list">
+              <li class="bullet-item"><span class="bullet-dot" style="background: #94a3b8;"></span><div>DML/DDL: <code>INSERT</code>, <code>UPDATE</code>, <code>DELETE</code>, <code>CREATE TABLE</code>.</div></li>
+              <li class="bullet-item"><span class="bullet-dot" style="background: #94a3b8;"></span><div>Complex joins: <code>JOIN ... ON</code>, subqueries, CTEs.</div></li>
+              <li class="bullet-item"><span class="bullet-dot" style="background: #94a3b8;"></span><div>Grouping & Aggregations: <code>GROUP BY</code>, <code>HAVING</code>, <code>SUM()</code>, <code>COUNT()</code>.</div></li>
+              <li class="bullet-item"><span class="bullet-dot" style="background: #94a3b8;"></span><div>Storage & Database Engine: No disk storage or physical execution.</div></li>
+              <li class="bullet-item"><span class="bullet-dot" style="background: #94a3b8;"></span><div>Remote database connections (JDBC, ODBC, sockets).</div></li>
+            </ul>
+          </div>
+        </div>
+      </div>
+      <div class="slide-footer">
+        <span>SQL Mini Compiler &middot; Scope</span>
+        <span>03 / 16</span>
+      </div>
+    </section>
+
+    <!-- Slide 4: System Architecture -->
+    <section class="slide" id="slide-4">
+      <div class="slide-header">
+        <span class="slide-eyebrow"><i data-lucide="network" style="width: 13px; height: 13px;"></i> 03 | Architecture</span>
+        <h2 class="slide-title">End-to-End System Architecture</h2>
+        <p class="slide-subtitle">Clean layer decoupling with bounded transport and subprocess isolation.</p>
+        <div class="slide-header-line"></div>
+      </div>
+      <div class="slide-body" style="flex-direction: column; gap: 20px;">
+        <div class="pipeline-grid">
+          <div class="pipeline-card">
+            <div class="pipeline-card-num">01</div>
+            <div class="pipeline-card-title">Frontend Web UI</div>
+            <div class="pipeline-card-desc">Urbanist + Shadcn Light UI. Collects query, highlights line gutter, renders AST & diagnostics.</div>
+          </div>
+          <div class="pipeline-card">
+            <div class="pipeline-card-num">02</div>
+            <div class="pipeline-card-title">Python Bridge</div>
+            <div class="pipeline-card-desc"><code>backend/server.py</code> handles <code>POST /api/analyze</code>. Enforces 64KB & 5s subprocess limit.</div>
+          </div>
+          <div class="pipeline-card">
+            <div class="pipeline-card-num">03</div>
+            <div class="pipeline-card-title">C11 Native Compiler</div>
+            <div class="pipeline-card-desc"><code>sqlc.exe --json</code> executes Flex scanner, Bison parser, and catalog checks in under 5ms.</div>
+          </div>
+          <div class="pipeline-card">
+            <div class="pipeline-card-num">04</div>
+            <div class="pipeline-card-title">JSON Contract</div>
+            <div class="pipeline-card-desc">Standardized JSON envelope returning tokens, stage, AST hierarchy, and diagnostics.</div>
+          </div>
+        </div>
+
+        <div class="card" style="padding: 18px 24px;">
+          <div class="card-title" style="font-size: 0.95rem;"><i data-lucide="file-json" style="width: 16px; height: 16px; color: #2563eb;"></i> Standardized JSON Contract Specification</div>
+          <pre class="code-box" style="padding: 10px; font-size: 0.78rem;">{ "ok": true, "stage": "valid", "tokens": [...], "diagnostics": [], "syntax": {"ok": true}, "ast": {...}, "semantics": {"ok": true} }</pre>
+        </div>
+      </div>
+      <div class="slide-footer">
+        <span>SQL Mini Compiler &middot; Architecture</span>
+        <span>04 / 16</span>
+      </div>
+    </section>
+
+    <!-- Slide 5: SQL Grammar & Concrete Syntax -->
+    <section class="slide" id="slide-5">
+      <div class="slide-header">
+        <span class="slide-eyebrow"><i data-lucide="code" style="width: 13px; height: 13px;"></i> 04 | Language</span>
+        <h2 class="slide-title">Context-Free Grammar & Precedence Hierarchy</h2>
+        <p class="slide-subtitle">Precedence and associativity explicitly encoded directly into the grammar rules.</p>
+        <div class="slide-header-line"></div>
+      </div>
+      <div class="slide-body">
+        <div class="col-2">
+          <div class="card">
+            <div class="card-title">Backus-Naur Concrete Syntax</div>
+            <pre class="code-box">query
+  : SELECT [DISTINCT] select_list
+    FROM table_list
+    [WHERE expr]
+    [ORDER BY order_list] [';'] ;
+
+select_item
+  : expr [AS alias]
+  | '*' ;
+
+table_ref
+  : IDENTIFIER [AS alias] ;
+
+order_item
+  : expr [ASC | DESC] ;</pre>
+          </div>
+
+          <div class="card">
+            <div class="card-title">Operator Precedence (Low to High)</div>
+            <ul class="bullet-list" style="gap: 8px;">
+              <li class="bullet-item"><span class="badge" style="width: 28px; justify-content: center;">1</span> <code>OR</code> (Left-associative)</li>
+              <li class="bullet-item"><span class="badge" style="width: 28px; justify-content: center;">2</span> <code>AND</code> (Left-associative)</li>
+              <li class="bullet-item"><span class="badge" style="width: 28px; justify-content: center;">3</span> <code>NOT</code> (Unary prefix)</li>
+              <li class="bullet-item"><span class="badge" style="width: 28px; justify-content: center;">4</span> Comparisons: <code>=</code>, <code>!=</code>, <code>&lt;</code>, <code>&lt;=</code>, <code>&gt;</code>, <code>&gt;=</code>, <code>LIKE</code>, <code>BETWEEN</code>, <code>IN</code></li>
+              <li class="bullet-item"><span class="badge" style="width: 28px; justify-content: center;">5</span> Additive: <code>+</code>, <code>-</code> (Left-associative)</li>
+              <li class="bullet-item"><span class="badge" style="width: 28px; justify-content: center;">6</span> Multiplicative: <code>*</code>, <code>/</code> (Left-associative)</li>
+              <li class="bullet-item"><span class="badge" style="width: 28px; justify-content: center;">7</span> Unary: <code>+</code>, <code>-</code></li>
+              <li class="bullet-item"><span class="badge" style="width: 28px; justify-content: center;">8</span> Primary: Column, Literal, <code>(expr)</code></li>
+            </ul>
+          </div>
+        </div>
+      </div>
+      <div class="slide-footer">
+        <span>SQL Mini Compiler &middot; Grammar</span>
+        <span>05 / 16</span>
+      </div>
+    </section>
+
+    <!-- Slide 6: Lexical Analysis -->
+    <section class="slide" id="slide-6">
+      <div class="slide-header">
+        <span class="slide-eyebrow"><i data-lucide="scan" style="width: 13px; height: 13px;"></i> 05 | Lexical Analysis</span>
+        <h2 class="slide-title">Flex Deterministic Scanner & Token Recording</h2>
+        <p class="slide-subtitle">One token stream generated once by Flex, driving both parser and JSON output.</p>
+        <div class="slide-header-line"></div>
+      </div>
+      <div class="slide-body">
+        <div class="col-2">
+          <div class="card">
+            <div class="card-title">Lexer Architecture (compiler/src/lexer.l)</div>
+            <ul class="bullet-list">
+              <li class="bullet-item">
+                <span class="bullet-dot"></span>
+                <div><span class="bullet-lead">Case-Insensitive Keywords:</span> Matches <code>SELECT</code>, <code>FROM</code>, <code>WHERE</code>, etc., regardless of casing, but preserves identifier case.</div>
+              </li>
+              <li class="bullet-item">
+                <span class="bullet-dot"></span>
+                <div><span class="bullet-lead">String Escaping:</span> Handles SQL-standard doubled-quote escapes (e.g. <code>'O''Brien'</code>).</div>
+              </li>
+              <li class="bullet-item">
+                <span class="bullet-dot"></span>
+                <div><span class="bullet-lead">Multi-Format Comments:</span> Ignores single-line <code>--</code>, <code>//</code>, and block comments <code>/* ... */</code>.</div>
+              </li>
+              <li class="bullet-item">
+                <span class="bullet-dot"></span>
+                <div><span class="bullet-lead">1-Based Tracking:</span> Records accurate line and column positions for every single token.</div>
+              </li>
+            </ul>
+          </div>
+
+          <div class="img-preview-box">
+            <img src="../screenshots/02_tokens.png" alt="Token Table">
+          </div>
+        </div>
+      </div>
+      <div class="slide-footer">
+        <span>SQL Mini Compiler &middot; Lexer</span>
+        <span>06 / 16</span>
+      </div>
+    </section>
+
+    <!-- Slide 7: Syntax Analysis -->
+    <section class="slide" id="slide-7">
+      <div class="slide-header">
+        <span class="slide-eyebrow"><i data-lucide="file-code-2" style="width: 13px; height: 13px;"></i> 06 | Syntax Analysis</span>
+        <h2 class="slide-title">Bison LALR(1) Parsing & Conflict Freedom</h2>
+        <p class="slide-subtitle">0 shift/reduce conflicts, 0 reduce/reduce conflicts, clean error recovery.</p>
+        <div class="slide-header-line"></div>
+      </div>
+      <div class="slide-body">
+        <div class="col-2">
+          <div class="card">
+            <div class="card-title">Grammar Implementation (compiler/src/parser.y)</div>
+            <ul class="bullet-list">
+              <li class="bullet-item">
+                <span class="bullet-dot"></span>
+                <div><span class="bullet-lead">LALR(1) Parsing:</span> Deterministic table-driven parser generated directly by GNU Bison.</div>
+              </li>
+              <li class="bullet-item">
+                <span class="bullet-dot"></span>
+                <div><span class="bullet-lead">Left-Recursion Elimination:</span> Clauses and lists use left-recursion for bounded Bison stack memory.</div>
+              </li>
+              <li class="bullet-item">
+                <span class="bullet-dot"></span>
+                <div><span class="bullet-lead">Action Rules:</span> Semantic action rules instantiate C AST nodes immediately during reductions.</div>
+              </li>
+              <li class="bullet-item">
+                <span class="bullet-dot"></span>
+                <div><span class="bullet-lead">Error Diagnostics:</span> Emits <code>P001</code> (unexpected token) and <code>P002</code> (expected specific token).</div>
+              </li>
+            </ul>
+          </div>
+
+          <div class="img-preview-box">
+            <img src="../screenshots/04_syntax_error.png" alt="Syntax Error Diagnostic">
+          </div>
+        </div>
+      </div>
+      <div class="slide-footer">
+        <span>SQL Mini Compiler &middot; Parser</span>
+        <span>07 / 16</span>
+      </div>
+    </section>
+
+    <!-- Slide 8: Abstract Syntax Tree -->
+    <section class="slide" id="slide-8">
+      <div class="slide-header">
+        <span class="slide-eyebrow"><i data-lucide="git-fork" style="width: 13px; height: 13px;"></i> 07 | AST Construction</span>
+        <h2 class="slide-title">Strongly-Typed Abstract Syntax Tree</h2>
+        <p class="slide-subtitle">Hierarchical in-memory representation built during Bison semantic actions.</p>
+        <div class="slide-header-line"></div>
+      </div>
+      <div class="slide-body">
+        <div class="col-2">
+          <div class="card">
+            <div class="card-title">AST Node Architecture (ast.h / ast.c)</div>
+            <ul class="bullet-list">
+              <li class="bullet-item">
+                <span class="bullet-dot"></span>
+                <div><span class="bullet-lead">Query Node:</span> Root container holding distinct flag, selectList, fromList, where clause, and orderList.</div>
+              </li>
+              <li class="bullet-item">
+                <span class="bullet-dot"></span>
+                <div><span class="bullet-lead">Expression Nodes:</span> Discriminated unions for Literals, Column references, Binary operators, and Predicates.</div>
+              </li>
+              <li class="bullet-item">
+                <span class="bullet-dot"></span>
+                <div><span class="bullet-lead">Memory Arena:</span> All nodes are allocated with clean ownership tracking and freed in one sweep.</div>
+              </li>
+            </ul>
+          </div>
+
+          <div class="img-preview-box">
+            <img src="../screenshots/01_valid_ast.png" alt="Valid AST Hierarchy">
+          </div>
+        </div>
+      </div>
+      <div class="slide-footer">
+        <span>SQL Mini Compiler &middot; AST</span>
+        <span>08 / 16</span>
+      </div>
+    </section>
+
+    <!-- Slide 9: Semantic Analysis -->
+    <section class="slide" id="slide-9">
+      <div class="slide-header">
+        <span class="slide-eyebrow"><i data-lucide="shield-check" style="width: 13px; height: 13px;"></i> 08 | Semantic Analysis</span>
+        <h2 class="slide-title">Catalog Resolution & Type Checking</h2>
+        <p class="slide-subtitle">Multi-table scope, ambiguity detection, and strict operator typing.</p>
+        <div class="slide-header-line"></div>
+      </div>
+      <div class="slide-body">
+        <div class="col-2">
+          <div class="card">
+            <div class="card-title">Semantic Validation Engine (semantic.c)</div>
+            <ul class="bullet-list" style="gap: 8px;">
+              <li class="bullet-item"><code>S001</code>: Unknown table, qualifier, or alias reference.</li>
+              <li class="bullet-item"><code>S002</code>: Duplicate table name or alias in <code>FROM</code> clause.</li>
+              <li class="bullet-item"><code>S003</code>: Unknown column referenced in select/where/order.</li>
+              <li class="bullet-item"><code>S004</code>: Ambiguous unqualified column matching multiple tables.</li>
+              <li class="bullet-item"><code>S005</code>: Type mismatch or illegal operator application.</li>
+              <li class="bullet-item"><code>S006</code>: <code>WHERE</code> condition does not evaluate to boolean.</li>
+              <li class="bullet-item"><code>S007</code>: Duplicate alias in projection list.</li>
+              <li class="bullet-item"><code>S008</code>: <code>ORDER BY</code> ordinal position out of range.</li>
+            </ul>
+          </div>
+
+          <div class="img-preview-box">
+            <img src="../screenshots/03_semantic_error.png" alt="Semantic Ambiguity Diagnostic">
+          </div>
+        </div>
+      </div>
+      <div class="slide-footer">
+        <span>SQL Mini Compiler &middot; Semantics</span>
+        <span>09 / 16</span>
+      </div>
+    </section>
+
+    <!-- Slide 10: Compiler Core -->
+    <section class="slide" id="slide-10">
+      <div class="slide-header">
+        <span class="slide-eyebrow"><i data-lucide="terminal" style="width: 13px; height: 13px;"></i> 09 | Compiler Core</span>
+        <h2 class="slide-title">Native C11 Binary & Tooling CLI</h2>
+        <p class="slide-subtitle">Compiled with MinGW GCC into a standalone 120 KB native binary.</p>
+        <div class="slide-header-line"></div>
+      </div>
+      <div class="slide-body">
+        <div class="col-2">
+          <div class="card">
+            <div class="card-title">Command Line Interface (compiler/bin/sqlc.exe)</div>
+            <pre class="code-box"># Direct query compilation
+sqlc.exe -e "SELECT name FROM students;"
+
+# Token stream extraction
+sqlc.exe --tokens -e "SELECT name FROM students;"
+
+# Machine-readable JSON output
+sqlc.exe --json -e "SELECT name FROM students;"
+
+# Read from stdin
+Get-Content query.sql | sqlc.exe --json</pre>
+            <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 8px;">
+              Exit Codes: <code>0</code> (Valid), <code>1</code> (Lexical/Syntax Error), <code>2</code> (Semantic Error), <code>3</code> (I/O).
+            </div>
+          </div>
+
+          <div class="img-preview-box">
+            <img src="../screenshots/08_json_output.png" alt="CLI JSON Output">
+          </div>
+        </div>
+      </div>
+      <div class="slide-footer">
+        <span>SQL Mini Compiler &middot; Compiler Core</span>
+        <span>10 / 16</span>
+      </div>
+    </section>
+
+    <!-- Slide 11: Python Bridge -->
+    <section class="slide" id="slide-11">
+      <div class="slide-header">
+        <span class="slide-eyebrow"><i data-lucide="cpu" style="width: 13px; height: 13px;"></i> 10 | Bridge Layer</span>
+        <h2 class="slide-title">Lightweight & Secure Python HTTP Bridge</h2>
+        <p class="slide-subtitle">No third-party web frameworks; standard-library Python HTTP server.</p>
+        <div class="slide-header-line"></div>
+      </div>
+      <div class="slide-body">
+        <div class="col-3">
+          <div class="card">
+            <div class="card-title"><i data-lucide="shield" style="width: 16px; height: 16px; color: #059669;"></i> Isolation & Limits</div>
+            <p class="card-desc">
+              Request body limited to 64 KiB. Source string capped at 60,000 chars. Invokes compiler via <code>subprocess.run(shell=False)</code> with stdin piping.
+            </p>
+          </div>
+          <div class="card">
+            <div class="card-title"><i data-lucide="clock" style="width: 16px; height: 16px; color: #2563eb;"></i> Subprocess Timeout</div>
+            <p class="card-desc">
+              Strict 5.0-second execution timeout guard against runaway operations. Prevents DOS or memory exhaustion.
+            </p>
+          </div>
+          <div class="card">
+            <div class="card-title"><i data-lucide="radio" style="width: 16px; height: 16px; color: #d97706;"></i> Health & Binding</div>
+            <p class="card-desc">
+              Bound locally to <code>127.0.0.1:8000</code>. Provides <code>/api/health</code> endpoint to report compiler binary availability.
+            </p>
+          </div>
+        </div>
+      </div>
+      <div class="slide-footer">
+        <span>SQL Mini Compiler &middot; Bridge</span>
+        <span>11 / 16</span>
+      </div>
+    </section>
+
+    <!-- Slide 12: Modern Web Frontend -->
+    <section class="slide" id="slide-12">
+      <div class="slide-header">
+        <span class="slide-eyebrow"><i data-lucide="layout" style="width: 13px; height: 13px;"></i> 11 | Frontend UI</span>
+        <h2 class="slide-title">Modern Minimalist Web Interface</h2>
+        <p class="slide-subtitle">Shadcn UI light theme, Urbanist typography, and interactive exploration.</p>
+        <div class="slide-header-line"></div>
+      </div>
+      <div class="slide-body">
+        <div class="col-2">
+          <div class="card">
+            <div class="card-title">Frontend Design Highlights</div>
+            <ul class="bullet-list">
+              <li class="bullet-item"><span class="bullet-dot"></span><div><span class="bullet-lead">Clean Light Mode:</span> Minimalist slate palette, crisp 1px borders, zero drop shadows.</div></li>
+              <li class="bullet-item"><span class="bullet-dot"></span><div><span class="bullet-lead">Gutter Line Numbers:</span> Synchronized line numbers aligned with compiler diagnostics.</div></li>
+              <li class="bullet-item"><span class="bullet-dot"></span><div><span class="bullet-lead">Clickable Diagnostics:</span> Clicking an error alert jumps directly to that line in the editor.</div></li>
+              <li class="bullet-item"><span class="bullet-dot"></span><div><span class="bullet-lead">Interactive Schema:</span> One-click insertion of table names and columns into the query.</div></li>
+              <li class="bullet-item"><span class="bullet-dot"></span><div><span class="bullet-lead">SQL Formatter:</span> Built-in formatting and clipboard utilities.</div></li>
+            </ul>
+          </div>
+
+          <div class="img-preview-box">
+            <img src="../screenshots/06_schema.png" alt="Schema Catalog View">
+          </div>
+        </div>
+      </div>
+      <div class="slide-footer">
+        <span>SQL Mini Compiler &middot; Frontend</span>
+        <span>12 / 16</span>
+      </div>
+    </section>
+
+    <!-- Slide 13: Comprehensive Testing -->
+    <section class="slide" id="slide-13">
+      <div class="slide-header">
+        <span class="slide-eyebrow"><i data-lucide="check-square" style="width: 13px; height: 13px;"></i> 12 | Testing</span>
+        <h2 class="slide-title">Shared Test Suite & Integration Verification</h2>
+        <p class="slide-subtitle">79-case shared compiler test matrix across all 4 error and success categories.</p>
+        <div class="slide-header-line"></div>
+      </div>
+      <div class="slide-body">
+        <div class="col-2">
+          <div class="card">
+            <div class="card-title">Test Matrix Breakdown (cases.json)</div>
+            <ul class="bullet-list">
+              <li class="bullet-item"><span class="bullet-dot" style="background: var(--success);"></span><div><strong>30 Valid Queries:</strong> Projections, star expansion, aliases, filters, multi-table joins.</div></li>
+              <li class="bullet-item"><span class="bullet-dot" style="background: #a855f7;"></span><div><strong>25 Semantic Error Cases:</strong> Unknown tables, ambiguous columns, duplicate aliases, bad types.</div></li>
+              <li class="bullet-item"><span class="bullet-dot" style="background: var(--warning);"></span><div><strong>20 Syntax Error Cases:</strong> Malformed clauses, unclosed parentheses, missing tokens.</div></li>
+              <li class="bullet-item"><span class="bullet-dot" style="background: var(--error);"></span><div><strong>4 Lexical Error Cases:</strong> Unterminated literals, illegal characters, open block comments.</div></li>
+            </ul>
+          </div>
+
+          <div class="img-preview-box">
+            <img src="../screenshots/07_test_results.png" alt="Test Suite Execution">
+          </div>
+        </div>
+      </div>
+      <div class="slide-footer">
+        <span>SQL Mini Compiler &middot; Testing</span>
+        <span>13 / 16</span>
+      </div>
+    </section>
+
+    <!-- Slide 14: Results & Metrics -->
+    <section class="slide" id="slide-14">
+      <div class="slide-header">
+        <span class="slide-eyebrow"><i data-lucide="bar-chart-2" style="width: 13px; height: 13px;"></i> 13 | Results</span>
+        <h2 class="slide-title">Empirical Results & Deliverables</h2>
+        <p class="slide-subtitle">100% test pass rate, sub-5ms compilation, zero parser duplication.</p>
+        <div class="slide-header-line"></div>
+      </div>
+      <div class="slide-body">
+        <div class="col-3">
+          <div class="card" style="text-align: center; justify-content: center; align-items: center;">
+            <div style="font-size: 2.8rem; font-weight: 800; color: var(--success);">79 / 79</div>
+            <div style="font-size: 0.95rem; font-weight: 700; margin-top: 4px;">Compiler Tests</div>
+            <div style="font-size: 0.78rem; color: var(--text-muted); margin-top: 4px;">Zero failures across all phases</div>
+          </div>
+          <div class="card" style="text-align: center; justify-content: center; align-items: center;">
+            <div style="font-size: 2.8rem; font-weight: 800; color: var(--accent);">8 / 8</div>
+            <div style="font-size: 0.95rem; font-weight: 700; margin-top: 4px;">Bridge Integration</div>
+            <div style="font-size: 0.78rem; color: var(--text-muted); margin-top: 4px;">Transport, safety limits, error mapping</div>
+          </div>
+          <div class="card" style="text-align: center; justify-content: center; align-items: center;">
+            <div style="font-size: 2.8rem; font-weight: 800; color: var(--text);">&lt; 5 ms</div>
+            <div style="font-size: 0.95rem; font-weight: 700; margin-top: 4px;">Average Response</div>
+            <div style="font-size: 0.78rem; color: var(--text-muted); margin-top: 4px;">High throughput native C execution</div>
+          </div>
+        </div>
+      </div>
+      <div class="slide-footer">
+        <span>SQL Mini Compiler &middot; Results</span>
+        <span>14 / 16</span>
+      </div>
+    </section>
+
+    <!-- Slide 15: Limitations & Future Work -->
+    <section class="slide" id="slide-15">
+      <div class="slide-header">
+        <span class="slide-eyebrow"><i data-lucide="git-pull-request" style="width: 13px; height: 13px;"></i> 14 | Future Work</span>
+        <h2 class="slide-title">System Limitations & Expansion Roadmap</h2>
+        <p class="slide-subtitle">Clear technical boundaries with roadmap for complete SQL compatibility.</p>
+        <div class="slide-header-line"></div>
+      </div>
+      <div class="slide-body">
+        <div class="col-2">
+          <div class="card">
+            <div class="card-title"><i data-lucide="alert-circle" style="width: 16px; height: 16px; color: var(--warning);"></i> Current Limitations</div>
+            <ul class="bullet-list">
+              <li class="bullet-item"><span class="bullet-dot" style="background: var(--warning);"></span><div>Static hardcoded catalog without dynamic DDL updates.</div></li>
+              <li class="bullet-item"><span class="bullet-dot" style="background: var(--warning);"></span><div>Absence of explicit <code>JOIN ... ON</code> syntactic sugar.</div></li>
+              <li class="bullet-item"><span class="bullet-dot" style="background: var(--warning);"></span><div>No subquery or CTE support in <code>FROM</code> or <code>WHERE</code>.</div></li>
+            </ul>
+          </div>
+
+          <div class="card">
+            <div class="card-title"><i data-lucide="arrow-up-right" style="width: 16px; height: 16px; color: var(--accent);"></i> Future Architectural Enhancements</div>
+            <ul class="bullet-list">
+              <li class="bullet-item"><span class="bullet-dot"></span><div>Query Planner: Logical query plan generation & relational algebra rewrite.</div></li>
+              <li class="bullet-item"><span class="bullet-dot"></span><div>Cost-Based Optimizer: Index selection and join reordering simulation.</div></li>
+              <li class="bullet-item"><span class="bullet-dot"></span><div>WASM Target: Direct compilation to WebAssembly for zero-latency client run.</div></li>
+            </ul>
+          </div>
+        </div>
+      </div>
+      <div class="slide-footer">
+        <span>SQL Mini Compiler &middot; Future Work</span>
+        <span>15 / 16</span>
+      </div>
+    </section>
+
+    <!-- Slide 16: Conclusion -->
+    <section class="slide" id="slide-16">
+      <div class="slide-header">
+        <span class="slide-eyebrow"><i data-lucide="award" style="width: 13px; height: 13px;"></i> 15 | Conclusion</span>
+        <h2 class="slide-title">Summary & Key Takeaways</h2>
+        <p class="slide-subtitle">A sound, fully-tested compiler front-end preserving architectural integrity.</p>
+        <div class="slide-header-line"></div>
+      </div>
+      <div class="slide-body">
+        <div class="col-2">
+          <div class="card">
+            <div class="card-title">Architectural Takeaways</div>
+            <ul class="bullet-list">
+              <li class="bullet-item"><span class="bullet-dot"></span><div><strong>One Native Engine:</strong> Complete front-end written once in C11 with Flex and Bison.</div></li>
+              <li class="bullet-item"><span class="bullet-dot"></span><div><strong>Defensive Isolation:</strong> Python bridge acts purely as transport, respecting timeout and size guards.</div></li>
+              <li class="bullet-item"><span class="bullet-dot"></span><div><strong>User Experience:</strong> Modern light mode UI makes compiler internals intuitive and accessible.</div></li>
+            </ul>
+          </div>
+
+          <div class="card" style="background: #ffffff; justify-content: center; align-items: center; text-align: center; padding: 24px;">
+            <img src="assets/mascot_celebrate.jpg" alt="Celebrating Mascot" style="height: 250px; width: 250px; object-fit: contain; border-radius: 12px; margin-bottom: 12px;">
+            <div style="font-size: 1.6rem; font-weight: 800; color: #0f172a; margin-bottom: 6px;">Thank You!</div>
+            <p style="font-size: 0.95rem; color: var(--text-muted); margin-bottom: 16px;">Questions &amp; Discussion</p>
+            <div style="display: flex; gap: 8px;">
+              <span class="badge badge-success"><i data-lucide="check" style="width: 12px; height: 12px;"></i> All 79 Tests Passing</span>
+              <span class="badge badge-primary"><i data-lucide="sparkles" style="width: 12px; height: 12px;"></i> Clean Architecture</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="slide-footer">
+        <span>SQL Mini Compiler &middot; Conclusion</span>
+        <span>16 / 16</span>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Interactive Slide Navigation Controls -->
+  <footer class="nav-bar">
+    <button class="nav-btn" id="prev-btn"><i data-lucide="chevron-left" style="width: 14px; height: 14px;"></i> Prev</button>
+    <span id="slide-indicator" style="font-weight: 600; min-width: 70px; text-align: center;">01 / 16</span>
+    <button class="nav-btn" id="next-btn">Next <i data-lucide="chevron-right" style="width: 14px; height: 14px;"></i></button>
+    <button class="nav-btn" id="fs-btn"><i data-lucide="maximize-2" style="width: 14px; height: 14px;"></i> Fullscreen</button>
+  </footer>
+
+  <script>
+    (function() {
+      var currentSlide = 1;
+      var totalSlides = 16;
+
+      var prevBtn = document.getElementById('prev-btn');
+      var nextBtn = document.getElementById('next-btn');
+      var fsBtn = document.getElementById('fs-btn');
+      var indicator = document.getElementById('slide-indicator');
+
+      function updateSlide(index) {
+        if (index < 1) index = 1;
+        if (index > totalSlides) index = totalSlides;
+        currentSlide = index;
+
+        document.querySelectorAll('.slide').forEach(function(s, i) {
+          s.classList.toggle('active', i + 1 === currentSlide);
+        });
+
+        indicator.textContent = (currentSlide < 10 ? '0' : '') + currentSlide + ' / ' + totalSlides;
+        
+        if (window.lucide) {
+          lucide.createIcons();
+        }
+      }
+
+      window.__gotoSlide = updateSlide;
+
+      prevBtn.addEventListener('click', function() { updateSlide(currentSlide - 1); });
+      nextBtn.addEventListener('click', function() { updateSlide(currentSlide + 1); });
+
+      document.addEventListener('keydown', function(e) {
+        if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') {
+          e.preventDefault();
+          updateSlide(currentSlide + 1);
+        } else if (e.key === 'ArrowLeft' || e.key === 'PageUp') {
+          e.preventDefault();
+          updateSlide(currentSlide - 1);
+        } else if (e.key === 'Home') {
+          e.preventDefault();
+          updateSlide(1);
+        } else if (e.key === 'End') {
+          e.preventDefault();
+          updateSlide(totalSlides);
+        }
+      });
+
+      fsBtn.addEventListener('click', function() {
+        if (!document.fullscreenElement) {
+          document.documentElement.requestFullscreen().catch(function() {});
+        } else {
+          document.exitFullscreen().catch(function() {});
+        }
+      });
+
+      if (window.lucide) {
+        lucide.createIcons();
+      }
+    })();
+  </script>
+</body>
+</html>
