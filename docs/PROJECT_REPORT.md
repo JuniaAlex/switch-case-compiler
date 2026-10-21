@@ -6,8 +6,8 @@
 | --- | --- |
 | Course | Compiler Design |
 | Programme | B.Tech (Computer Science and Engineering) |
-| Department | `<Department Name>` |
-| Institution | `<Institution Name>` |
+| Department | `Department of Computer Science and Engineering` |
+| Institution | `Amal Jyothi College of Engineering` |
 | Academic year | 2026-27 |
 | Course guide | `<Faculty Name>` |
 | Submitted by | `<Member 1>` (`<Roll No.>`), `<Member 2>` (`<Roll No.>`), `<Member 3>` (`<Roll No.>`), `<Member 4>` (`<Roll No.>`) |
@@ -28,7 +28,7 @@ This project validates a restricted SQL subset. It does not execute queries and 
 
 ## Acknowledgement
 
-We thank our course guide, `<Faculty Name>`, for guidance on compiler phases, grammar design, and semantic analysis. We also thank the Department of `<Department Name>` at `<Institution Name>` for providing the laboratory and software environment used to build and test the project.
+We thank our course guide, `<Faculty Name>`, for guidance on compiler phases, grammar design, and semantic analysis. We also thank the Department of `Department of Computer Science and Engineering` at `Amal Jyothi College of Engineering` for providing the laboratory and software environment used to build and test the project.
 
 ## Abstract
 

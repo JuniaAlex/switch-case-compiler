@@ -10,6 +10,15 @@
   var copySqlText = document.getElementById("copy-sql-text");
   var copyAstButton = document.getElementById("copy-ast-button");
   var copyAstText = document.getElementById("copy-ast-text");
+  var downloadAstButton = document.getElementById("download-ast-button");
+  var historyButton = document.getElementById("history-button");
+  var historyDropdown = document.getElementById("history-dropdown");
+  var historyList = document.getElementById("history-list");
+  var clearHistoryButton = document.getElementById("clear-history-button");
+  var metricLatency = document.getElementById("metric-latency");
+  var metricTokens = document.getElementById("metric-tokens");
+  var metricTables = document.getElementById("metric-tables");
+  var metricAstDepth = document.getElementById("metric-ast-depth");
   var lineNumbers = document.getElementById("line-numbers");
   var editorLength = document.getElementById("editor-length");
   var editorHint = document.getElementById("editor-hint");
@@ -112,6 +121,23 @@
       "SELECT name, cgpa",
       "FROM students",
       "WHERE name = 'Alice;"
+    ].join("\n"),
+    "three-join": [
+      "SELECT s.name, c.title, e.grade, (s.cgpa * 10) AS percentage",
+      "FROM students s, enrollments e, courses c",
+      "WHERE s.student_id = e.student_id",
+      "  AND e.course_id = c.course_id",
+      "  AND s.cgpa >= 8.0",
+      "ORDER BY percentage DESC;"
+    ].join("\n"),
+    "type-error": [
+      "SELECT name",
+      "FROM students",
+      "WHERE age = 'twenty';"
+    ].join("\n"),
+    "dup-alias": [
+      "SELECT name AS info, department AS info",
+      "FROM students;"
     ].join("\n")
   };
 
@@ -571,6 +597,117 @@
     }
   }
 
+  var HISTORY_STORAGE_KEY = "sql_compiler_query_history";
+
+  function getHistory() {
+    try {
+      var raw = localStorage.getItem(HISTORY_STORAGE_KEY);
+      return raw ? JSON.parse(raw) : [];
+    } catch (e) {
+      return [];
+    }
+  }
+
+  function saveToHistory(sql) {
+    var trimmed = (sql || "").trim();
+    if (!trimmed) return;
+    try {
+      var history = getHistory();
+      history = history.filter(function (item) {
+        return item.sql !== trimmed;
+      });
+      var now = new Date();
+      var timeStr = now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+      history.unshift({ sql: trimmed, time: timeStr });
+      if (history.length > 25) {
+        history = history.slice(0, 25);
+      }
+      localStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(history));
+      renderHistory();
+    } catch (e) {
+      // Ignore localStorage issues
+    }
+  }
+
+  function renderHistory() {
+    if (!historyList) return;
+    var history = getHistory();
+    if (history.length === 0) {
+      historyList.innerHTML = "<div class=\"history-empty\">No queries in history yet.</div>";
+      return;
+    }
+    historyList.innerHTML = history.map(function (item, idx) {
+      var preview = item.sql.replace(/\s+/g, " ");
+      return "<button type=\"button\" class=\"history-item\" data-history-idx=\"" + idx + "\">" +
+        "<span class=\"history-item-sql\">" + escapeHtml(preview) + "</span>" +
+        "<span class=\"history-item-time\">" + escapeHtml(item.time) + "</span>" +
+        "</button>";
+    }).join("");
+
+    historyList.querySelectorAll(".history-item").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        var idx = parseInt(btn.getAttribute("data-history-idx"), 10);
+        var list = getHistory();
+        if (list[idx]) {
+          input.value = list[idx].sql;
+          updateEditorMeter();
+          validate();
+          if (historyDropdown) historyDropdown.hidden = true;
+        }
+      });
+    });
+  }
+
+  function calculateAstDepth(node) {
+    if (!node || typeof node !== "object") return 0;
+    var maxChildDepth = 0;
+    for (var key in node) {
+      if (Object.prototype.hasOwnProperty.call(node, key)) {
+        var val = node[key];
+        if (Array.isArray(val)) {
+          for (var i = 0; i < val.length; i++) {
+            maxChildDepth = Math.max(maxChildDepth, calculateAstDepth(val[i]));
+          }
+        } else if (val && typeof val === "object") {
+          maxChildDepth = Math.max(maxChildDepth, calculateAstDepth(val));
+        }
+      }
+    }
+    return 1 + maxChildDepth;
+  }
+
+  function updateMetrics(result, elapsedClientMs) {
+    if (metricLatency) {
+      var timeToShow = result.elapsedMs != null ? result.elapsedMs : elapsedClientMs;
+      metricLatency.textContent = timeToShow + " ms";
+    }
+    if (metricTokens) {
+      var vTokens = visibleTokens(result.tokens || []);
+      metricTokens.textContent = vTokens.length + " token" + (vTokens.length === 1 ? "" : "s");
+    }
+    if (metricTables) {
+      var tableCount = (result.ast && Array.isArray(result.ast.fromList)) ? result.ast.fromList.length : 0;
+      metricTables.textContent = tableCount + " table" + (tableCount === 1 ? "" : "s");
+    }
+    if (metricAstDepth) {
+      var depth = result.ast ? calculateAstDepth(result.ast) : 0;
+      metricAstDepth.textContent = "AST depth: " + depth;
+    }
+  }
+
+  function exportAstJson() {
+    var data = lastResult ? lastResult : { error: "No compilation result available yet." };
+    var blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement("a");
+    a.href = url;
+    a.download = "sql_compiler_analysis.json";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
   function renderSummary(result) {
     var statusText;
     var summary;
@@ -696,12 +833,16 @@
     setAnalyzing();
     updateEditorMeter();
 
+    var startTime = performance.now();
     try {
       var result = await analyze(input.value);
       if (sequence !== requestSequence) {
         return;
       }
+      var elapsedClientMs = Math.round(performance.now() - startTime);
       renderResult(result);
+      updateMetrics(result, elapsedClientMs);
+      saveToHistory(input.value);
       editorHint.textContent = result.ok ? "Query accepted by the Flex/Bison compiler" : "See diagnostics for details";
     } catch (error) {
       if (sequence !== requestSequence) {
@@ -779,6 +920,10 @@
     statusBadge.textContent = "IDLE";
     statusBadge.className = "status-badge status-idle";
     resultSummary.textContent = "Waiting for input";
+    if (metricLatency) metricLatency.textContent = "-- ms";
+    if (metricTokens) metricTokens.textContent = "0 tokens";
+    if (metricTables) metricTables.textContent = "0 tables";
+    if (metricAstDepth) metricAstDepth.textContent = "AST depth: 0";
     editorHint.textContent = "Ctrl + Enter to validate";
     updatePipelineSteps(null, false);
     showTab("ast");
@@ -822,6 +967,40 @@
       copyToClipboard(content, copyAstButton, copyAstText);
     });
   }
+
+  if (downloadAstButton) {
+    downloadAstButton.addEventListener("click", exportAstJson);
+  }
+
+  if (historyButton) {
+    historyButton.addEventListener("click", function (e) {
+      e.stopPropagation();
+      if (!historyDropdown) return;
+      var isHidden = historyDropdown.hidden;
+      historyDropdown.hidden = !isHidden;
+      if (isHidden) {
+        renderHistory();
+      }
+    });
+  }
+
+  if (clearHistoryButton) {
+    clearHistoryButton.addEventListener("click", function (e) {
+      e.stopPropagation();
+      try {
+        localStorage.removeItem(HISTORY_STORAGE_KEY);
+      } catch (err) {}
+      renderHistory();
+    });
+  }
+
+  document.addEventListener("click", function (e) {
+    if (historyDropdown && !historyDropdown.hidden) {
+      if (!historyDropdown.contains(e.target) && e.target !== historyButton && !historyButton.contains(e.target)) {
+        historyDropdown.hidden = true;
+      }
+    }
+  });
 
   document.querySelectorAll(".tab").forEach(function (tab) {
     tab.addEventListener("click", function () {
