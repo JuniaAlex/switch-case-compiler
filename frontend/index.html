@@ -119,6 +119,10 @@
           </div>
 
           <div class="panel-toolbar">
+            <button class="btn btn-ghost btn-sm" id="history-button" type="button" title="View query history">
+              <i data-lucide="history" style="width: 14px; height: 14px;"></i>
+              <span>History</span>
+            </button>
             <button class="btn btn-ghost btn-sm" id="format-button" type="button" title="Format SQL indentation">
               <i data-lucide="align-left" style="width: 14px; height: 14px;"></i>
               <span>Format</span>
@@ -134,6 +138,17 @@
           </div>
         </div>
 
+        <!-- Query History Dropdown Menu -->
+        <div class="history-dropdown" id="history-dropdown" hidden>
+          <div class="history-header">
+            <span class="history-title"><i data-lucide="history" style="width: 13px; height: 13px;"></i> Recent Queries</span>
+            <button class="history-clear-btn" id="clear-history-button" type="button">Clear All</button>
+          </div>
+          <div class="history-list" id="history-list">
+            <div class="history-empty">No queries in history yet.</div>
+          </div>
+        </div>
+
         <!-- Examples Bar -->
         <div class="example-section" aria-label="Example queries">
           <span class="example-title">
@@ -145,6 +160,10 @@
               <i data-lucide="link" style="width: 12px; height: 12px;"></i>
               <span>Two-table Join</span>
             </button>
+            <button class="example-chip" data-example="three-join" type="button">
+              <i data-lucide="git-merge" style="width: 12px; height: 12px;"></i>
+              <span>Three-table Join</span>
+            </button>
             <button class="example-chip" data-example="filters" type="button">
               <i data-lucide="filter" style="width: 12px; height: 12px;"></i>
               <span>Complex Filters</span>
@@ -152,6 +171,14 @@
             <button class="example-chip" data-example="ambiguous" type="button">
               <i data-lucide="alert-triangle" style="width: 12px; height: 12px;"></i>
               <span>Ambiguous Column</span>
+            </button>
+            <button class="example-chip" data-example="type-error" type="button">
+              <i data-lucide="type" style="width: 12px; height: 12px;"></i>
+              <span>Type Mismatch</span>
+            </button>
+            <button class="example-chip" data-example="dup-alias" type="button">
+              <i data-lucide="copy-check" style="width: 12px; height: 12px;"></i>
+              <span>Duplicate Alias</span>
             </button>
             <button class="example-chip" data-example="syntax" type="button">
               <i data-lucide="bug" style="width: 12px; height: 12px;"></i>
@@ -209,7 +236,27 @@
             </div>
           </div>
 
-          <span class="status-badge status-idle" id="status-badge">IDLE</span>
+          <div class="panel-header-actions">
+            <div class="metrics-bar" id="metrics-bar">
+              <span class="metric-pill" title="Execution latency">
+                <i data-lucide="timer" style="width: 12px; height: 12px;"></i>
+                <span id="metric-latency">-- ms</span>
+              </span>
+              <span class="metric-pill" title="Total valid tokens">
+                <i data-lucide="layers" style="width: 12px; height: 12px;"></i>
+                <span id="metric-tokens">0 tokens</span>
+              </span>
+              <span class="metric-pill" title="Tables referenced">
+                <i data-lucide="database" style="width: 12px; height: 12px;"></i>
+                <span id="metric-tables">0 tables</span>
+              </span>
+              <span class="metric-pill" title="AST tree depth">
+                <i data-lucide="git-branch" style="width: 12px; height: 12px;"></i>
+                <span id="metric-ast-depth">AST depth: 0</span>
+              </span>
+            </div>
+            <span class="status-badge status-idle" id="status-badge">IDLE</span>
+          </div>
         </div>
 
         <!-- Output Tabs (Shadcn Segmented Tabs) -->
@@ -240,6 +287,10 @@
           </div>
 
           <div class="panel-toolbar">
+            <button class="btn btn-ghost btn-sm" id="download-ast-button" type="button" title="Export analysis JSON to file">
+              <i data-lucide="download" style="width: 14px; height: 14px;"></i>
+              <span>Export JSON</span>
+            </button>
             <button class="btn btn-ghost btn-sm" id="copy-ast-button" type="button" title="Copy output">
               <i data-lucide="copy" style="width: 14px; height: 14px;"></i>
               <span id="copy-ast-text">Copy</span>

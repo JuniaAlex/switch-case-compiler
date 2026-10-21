@@ -49,6 +49,16 @@ class BridgeTests(unittest.TestCase):
         self.assertTrue(payload["ok"])
         self.assertTrue(payload["compilerAvailable"])
 
+    def test_samples(self):
+        status, content_type, body = request(self.base, "/api/samples")
+        self.assertEqual(status, 200)
+        self.assertIn("application/json", content_type)
+        payload = json.loads(body)
+        self.assertTrue(payload["ok"])
+        self.assertIsInstance(payload["samples"], list)
+        self.assertGreater(len(payload["samples"]), 0)
+        self.assertIn("filename", payload["samples"][0])
+
     def test_static_frontend(self):
         status, content_type, body = request(self.base, "/")
         self.assertEqual(status, 200)

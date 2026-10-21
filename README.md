@@ -12,7 +12,7 @@ The submission uses one implementation path:
 
 The browser sends SQL to the local Python bridge, which runs the native compiler with `--json` and returns tokens, syntax status, AST, diagnostics, and semantic status. The Flex lexer records tokens once; the same token stream feeds parsing and JSON output.
 
-The compiler passes all **79/79** cases in the shared suite. The HTTP bridge passes **8/8** integration tests. The earlier pure-C and in-browser prototypes are retained under `archive/` for reference only.
+The compiler passes all **79/79** cases in the shared suite. The HTTP bridge passes **9/9** integration tests. The earlier pure-C and in-browser prototypes are retained under `archive/` for reference only.
 
 ## Features
 
@@ -153,6 +153,7 @@ The bridge binds to `127.0.0.1` by default.
 | --- | --- | --- |
 | `GET` | `/` | Serve `frontend/index.html` |
 | `GET` | `/api/health` | Report bridge and compiler availability |
+| `GET` | `/api/samples` | List sample SQL queries from `queries/` |
 | `POST` | `/api/analyze` | Analyze `{"source": "SELECT ..."}` |
 
 Safety limits:
@@ -229,7 +230,7 @@ Expected results:
 
 ```text
 compiler suite: 79 passed, 0 failed
-bridge tests:    8 passed, 0 failed
+bridge tests:    9 passed, 0 failed
 ```
 
 The compiler runner checks the JSON contract, exit code, stage, AST presence/absence, diagnostic code, and token position validity. The bridge tests cover health, static serving, valid/error analysis, invalid JSON, wrong field types, and oversized input.

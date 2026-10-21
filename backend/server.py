@@ -38,6 +38,7 @@ def run_compiler(source: str) -> dict:
         creation_flags = getattr(subprocess, "CREATE_NO_WINDOW", 0x08000000)
 
     try:
+        t0 = time.perf_counter()
         completed = subprocess.run(
             [str(COMPILER), "--json"],
             input=source,
@@ -50,6 +51,7 @@ def run_compiler(source: str) -> dict:
             creationflags=creation_flags,
             cwd=str(ROOT),
         )
+        elapsed_ms = round((time.perf_counter() - t0) * 1000, 2)
     except subprocess.TimeoutExpired as exc:
         raise BridgeError(504, "COMPILER_TIMEOUT", "Compiler timed out after 5 seconds") from exc
     except OSError as exc:
@@ -69,6 +71,7 @@ def run_compiler(source: str) -> dict:
 
     if not isinstance(result, dict):
         raise BridgeError(500, "INVALID_COMPILER_OUTPUT", "Compiler JSON must be an object")
+    result["elapsedMs"] = elapsed_ms
     return result
 
 
@@ -139,6 +142,22 @@ class BridgeHandler(BaseHTTPRequestHandler):
                     "compilerAvailable": COMPILER.is_file(),
                 },
             )
+            return
+        if path == "/api/samples":
+            queries_dir = ROOT / "queries"
+            samples = []
+            if queries_dir.is_dir():
+                for file_path in sorted(queries_dir.glob("*.sql")):
+                    try:
+                        sql_text = file_path.read_text(encoding="utf-8")
+                        samples.append({
+                            "name": file_path.stem.replace("_", " ").title(),
+                            "filename": file_path.name,
+                            "content": sql_text,
+                        })
+                    except Exception:
+                        pass
+            self.send_json(200, {"ok": True, "samples": samples})
             return
         if path == "/":
             self.send_frontend_file("index.html")
