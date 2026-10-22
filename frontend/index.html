@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Compiler front-end for C switch statements: Flex lexer, Bison parser, AST, case-label syntax validation and duplicate constant detection.">
+  <title>Switch Statement Compiler &mdash; Front-End Analysis & Duplicate Case Detection</title>
+  
+  <!-- Urbanist and JetBrains Mono Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Urbanist:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,400;1,600&display=swap" rel="stylesheet">
+  
+  <!-- Modern Stylesheet -->
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+  <div class="app-layout">
+    <!-- Navbar Header -->
+    <header class="app-header">
+      <div class="brand-wrapper">
+        <div class="brand-icon-box" aria-hidden="true">
+          <i data-lucide="split" style="width: 24px; height: 24px;"></i>
+        </div>
+        <div class="brand-text">
+          <h1>
+            Switch Statement Compiler
+            <span class="version-tag">Flex &amp; Bison</span>
+          </h1>
+          <p>Native C11 AST &amp; semantic validation &mdash; case-label syntax &amp; duplicate constant detection</p>
+        </div>
+      </div>
+      
+      <div class="header-actions">
+        <span class="badge badge-outline">
+          <i data-lucide="terminal" style="width: 14px; height: 14px;"></i>
+          <span>Native C11</span>
+        </span>
+        <span class="badge badge-outline">
+          <i data-lucide="cpu" style="width: 14px; height: 14px;"></i>
+          <span>Python Bridge</span>
+        </span>
+        <span class="badge badge-online" id="bridge-status">
+          <span class="badge-pulse-dot"></span>
+          <span>Connecting</span>
+        </span>
+      </div>
+    </header>
+
+    <!-- Compiler Pipeline Stepper -->
+    <nav class="pipeline-bar" aria-label="Compiler pipeline stages">
+      <div class="pipeline-step" id="step-lex">
+        <div class="step-num-icon">
+          <i data-lucide="scan" style="width: 16px; height: 16px;"></i>
+        </div>
+        <div class="step-text">
+          <span class="step-title">01 Lexical Analysis</span>
+          <span class="step-subtitle">Flex scanner (literals, keywords)</span>
+        </div>
+      </div>
+
+      <div class="pipeline-separator" aria-hidden="true">
+        <i data-lucide="chevron-right" style="width: 18px; height: 18px;"></i>
+      </div>
+
+      <div class="pipeline-step" id="step-parse">
+        <div class="step-num-icon">
+          <i data-lucide="file-code-2" style="width: 16px; height: 16px;"></i>
+        </div>
+        <div class="step-text">
+          <span class="step-title">02 Syntax Analysis</span>
+          <span class="step-subtitle">Bison LALR(1) switch grammar</span>
+        </div>
+      </div>
+
+      <div class="pipeline-separator" aria-hidden="true">
+        <i data-lucide="chevron-right" style="width: 18px; height: 18px;"></i>
+      </div>
+
+      <div class="pipeline-step" id="step-ast">
+        <div class="step-num-icon">
+          <i data-lucide="git-fork" style="width: 16px; height: 16px;"></i>
+        </div>
+        <div class="step-text">
+          <span class="step-title">03 AST Construction</span>
+          <span class="step-subtitle">Switch, case, default &amp; break nodes</span>
+        </div>
+      </div>
+
+      <div class="pipeline-separator" aria-hidden="true">
+        <i data-lucide="chevron-right" style="width: 18px; height: 18px;"></i>
+      </div>
+
+      <div class="pipeline-step" id="step-semantic">
+        <div class="step-num-icon">
+          <i data-lucide="shield-check" style="width: 16px; height: 16px;"></i>
+        </div>
+        <div class="step-text">
+          <span class="step-title">04 Semantic Validation</span>
+          <span class="step-subtitle">Constant eval &amp; duplicate detection</span>
+        </div>
+      </div>
+    </nav>
+
+    <!-- Main Workspace -->
+    <main class="main-workspace">
+      <!-- Query / Code Editor Panel -->
+      <section class="card-panel editor-panel">
+        <div class="panel-header">
+          <div class="panel-header-info">
+            <div class="panel-icon">
+              <i data-lucide="code-2" style="width: 18px; height: 18px;"></i>
+            </div>
+            <div>
+              <h2 class="panel-title">Code Editor</h2>
+              <p class="panel-subtitle">switch &middot; case &middot; default &middot; break</p>
+            </div>
+          </div>
+
+          <div class="panel-toolbar">
+            <button class="btn btn-ghost btn-sm" id="format-button" type="button" title="Format code indentation">
+              <i data-lucide="align-left" style="width: 14px; height: 14px;"></i>
+              <span>Format</span>
+            </button>
+            <button class="btn btn-ghost btn-sm" id="copy-sql-button" type="button" title="Copy code">
+              <i data-lucide="copy" style="width: 14px; height: 14px;"></i>
+              <span id="copy-sql-text">Copy</span>
+            </button>
+            <button class="btn btn-ghost btn-sm" id="clear-button" type="button" title="Clear code editor">
+              <i data-lucide="trash-2" style="width: 14px; height: 14px;"></i>
+              <span>Clear</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Examples Bar -->
+        <div class="example-section" aria-label="Example switch statements">
+          <span class="example-title">
+            <i data-lucide="sparkles" style="width: 13px; height: 13px;"></i>
+            <span>Presets</span>
+          </span>
+          <div class="example-chips-group">
+            <button class="example-chip" data-example="standard" type="button">
+              <i data-lucide="check-circle" style="width: 12px; height: 12px;"></i>
+              <span>Standard Switch</span>
+            </button>
+            <button class="example-chip" data-example="duplicate_const" type="button">
+              <i data-lucide="copy-check" style="width: 12px; height: 12px;"></i>
+              <span>Duplicate Constant</span>
+            </button>
+            <button class="example-chip" data-example="duplicate_eval" type="button">
+              <i data-lucide="calculator" style="width: 12px; height: 12px;"></i>
+              <span>Evaluated Duplicate</span>
+            </button>
+            <button class="example-chip" data-example="char_ascii" type="button">
+              <i data-lucide="binary" style="width: 12px; height: 12px;"></i>
+              <span>Char vs ASCII</span>
+            </button>
+            <button class="example-chip" data-example="non_const" type="button">
+              <i data-lucide="alert-triangle" style="width: 12px; height: 12px;"></i>
+              <span>Non-Const Label</span>
+            </button>
+            <button class="example-chip" data-example="multi_default" type="button">
+              <i data-lucide="alert-circle" style="width: 12px; height: 12px;"></i>
+              <span>Multiple Defaults</span>
+            </button>
+            <button class="example-chip" data-example="break_error" type="button">
+              <i data-lucide="ban" style="width: 12px; height: 12px;"></i>
+              <span>Break Outside</span>
+            </button>
+            <button class="example-chip" data-example="nested_scope" type="button">
+              <i data-lucide="folder-tree" style="width: 12px; height: 12px;"></i>
+              <span>Nested Switch</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Editor Shell -->
+        <div class="editor-container">
+          <div class="editor-wrapper">
+            <div class="line-numbers-gutter" id="line-numbers" aria-hidden="true">1</div>
+            <textarea id="sql-input" class="editor-textarea" spellcheck="false" autocomplete="off" autocapitalize="off"
+              aria-label="C switch code editor" placeholder="Write your C switch statements here..."></textarea>
+          </div>
+
+          <div class="editor-statusbar">
+            <div class="statusbar-left">
+              <span class="compiler-mode-pill">
+                <i data-lucide="check-circle" style="width: 12px; height: 12px; color: #10b981;"></i>
+                <span>C11 Native</span>
+              </span>
+              <span id="editor-hint">Ctrl + Enter to validate</span>
+              <span id="editor-length">0 characters</span>
+            </div>
+
+            <div class="statusbar-right">
+              <button class="btn btn-primary" id="validate-button" type="button">
+                <i data-lucide="zap" style="width: 15px; height: 15px;"></i>
+                <span>Validate Switch</span>
+                <span style="display: inline-flex; gap: 4px; margin-left: 2px;">
+                  <kbd class="kbd">Ctrl</kbd>
+                  <kbd class="kbd">Enter</kbd>
+                </span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Compiler Output Panel -->
+      <section class="card-panel result-panel">
+        <div class="panel-header">
+          <div class="panel-header-info">
+            <div class="panel-icon">
+              <i data-lucide="binary" style="width: 18px; height: 18px;"></i>
+            </div>
+            <div>
+              <h2 class="panel-title">Compiler Output</h2>
+              <p class="panel-subtitle" id="result-summary">Waiting for input</p>
+            </div>
+          </div>
+
+          <span class="status-badge status-idle" id="status-badge">IDLE</span>
+        </div>
+
+        <!-- Output Tabs (Shadcn Segmented Tabs) -->
+        <div class="tabs-header-bar">
+          <div class="tabs-list" role="tablist" aria-label="Compiler output views">
+            <button class="tab active" role="tab" aria-selected="true" data-tab="ast" id="tab-ast">
+              <i data-lucide="git-fork" style="width: 14px; height: 14px;"></i>
+              <span>Parse Tree</span>
+            </button>
+            <button class="tab" role="tab" aria-selected="false" data-tab="switch-inspector" id="tab-switch-inspector">
+              <i data-lucide="list-checks" style="width: 14px; height: 14px;"></i>
+              <span>Case Inspector</span>
+              <span class="tab-pill-count" id="case-count">0</span>
+            </button>
+            <button class="tab" role="tab" aria-selected="false" data-tab="tokens" id="tab-tokens">
+              <i data-lucide="layers" style="width: 14px; height: 14px;"></i>
+              <span>Tokens</span>
+              <span class="tab-pill-count" id="token-count">0</span>
+            </button>
+            <button class="tab" role="tab" aria-selected="false" data-tab="diagnostics" id="tab-diagnostics">
+              <i data-lucide="alert-circle" style="width: 14px; height: 14px;"></i>
+              <span>Diagnostics</span>
+              <span class="tab-pill-count tab-pill-alert" id="diagnostic-count">0</span>
+            </button>
+            <button class="tab" role="tab" aria-selected="false" data-tab="json" id="tab-json">
+              <i data-lucide="file-json" style="width: 14px; height: 14px;"></i>
+              <span>JSON Contract</span>
+            </button>
+          </div>
+
+          <div class="panel-toolbar">
+            <button class="btn btn-ghost btn-sm" id="copy-ast-button" type="button" title="Copy output">
+              <i data-lucide="copy" style="width: 14px; height: 14px;"></i>
+              <span id="copy-ast-text">Copy</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Tab Panels -->
+        <div class="tab-content-area">
+          <!-- AST / Parse Tree View -->
+          <div class="tab-panel active" role="tabpanel" id="panel-ast" aria-labelledby="tab-ast">
+            <div class="empty-box" id="ast-empty">
+              <div style="width: 64px; height: 64px; border-radius: 50%; background: rgba(56, 189, 248, 0.1); display: flex; align-items: center; justify-content: center; margin-bottom: 12px; color: var(--primary);">
+                <i data-lucide="split" style="width: 32px; height: 32px;"></i>
+              </div>
+              <h3>Ready to Compile</h3>
+              <p>Write a switch statement or click a preset above to inspect tokens, the Bison AST, and duplicate case detection diagnostics.</p>
+            </div>
+            <div class="tree-view ast-container" id="ast-view" hidden></div>
+          </div>
+
+          <!-- Case Inspector View -->
+          <div class="tab-panel" role="tabpanel" id="panel-switch-inspector" aria-labelledby="tab-switch-inspector">
+            <div class="schema-grid-layout" id="switch-inspector-view">
+              <div class="empty-box">
+                <p>Run validation to inspect switch statement scopes and case constant labels.</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Tokens View -->
+          <div class="tab-panel" role="tabpanel" id="panel-tokens" aria-labelledby="tab-tokens">
+            <div class="table-container">
+              <table class="token-data-table">
+                <thead>
+                  <tr>
+                    <th style="width: 50px;">#</th>
+                    <th>Token Type</th>
+                    <th>Lexeme</th>
+                    <th style="width: 70px;">Line</th>
+                    <th style="width: 70px;">Column</th>
+                  </tr>
+                </thead>
+                <tbody id="token-body">
+                  <tr>
+                    <td colspan="5" style="text-align: center; padding: 30px; color: #64748b;">No tokens analyzed yet</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Diagnostics View -->
+          <div class="tab-panel" role="tabpanel" id="panel-diagnostics" aria-labelledby="tab-diagnostics">
+            <div class="diagnostics-list" id="diagnostics-view"></div>
+          </div>
+
+          <!-- JSON Contract View -->
+          <div class="tab-panel" role="tabpanel" id="panel-json" aria-labelledby="tab-json">
+            <pre class="json-viewer-box" id="json-view">// Compiler JSON contract output will appear here</pre>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="app-footer">
+      <div class="footer-left">
+        <span class="footer-badge">
+          <i data-lucide="shield-check" style="width: 14px; height: 14px; color: #10b981;"></i>
+          <span>C Constructs: switch, case, default, break</span>
+        </span>
+        <span style="color: rgba(255, 255, 255, 0.2);">&middot;</span>
+        <span class="footer-badge">
+          <i data-lucide="cpu" style="width: 14px; height: 14px; color: #38bdf8;"></i>
+          <span>Constant Evaluation &amp; Duplicate Label Detection</span>
+        </span>
+      </div>
+
+      <div class="footer-right">
+        <span class="footer-badge">
+          <i data-lucide="check" style="width: 14px; height: 14px; color: #a5b4fc;"></i>
+          <span>Validation Only &middot; Subprocess Isolated</span>
+        </span>
+      </div>
+    </footer>
+  </div>
+
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- GSAP Animation Engine -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+  <!-- Main Application Logic -->
+  <script src="app.js"></script>
+</body>
+</html>
