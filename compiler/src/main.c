@@ -234,3 +234,137 @@ static void print_human_ast(const Program *program)
         print_ast_stmt(program->statements.items[i], 0);
     }
 }
+
+int main(int argc, char **argv)
+{
+    const char *code_argument = NULL;
+    const char *file_path = NULL;
+    int show_tokens = 0;
+    int show_ast = 1;
+    int quiet = 0;
+    int json_mode = 0;
+    int index;
+    char *source_text = NULL;
+    DiagnosticList diagnostics;
+    int parse_status;
+    int syntax_ok;
+    int lex_errors;
+    int parse_errors;
+    int semantic_errors;
+    int exit_code = 0;
+
+    for (index = 1; index < argc; index++) {
+        const char *arg = argv[index];
+        if (strcmp(arg, "-h") == 0 || strcmp(arg, "--help") == 0) {
+            print_usage(argv[0]);
+            return 0;
+        }
+        if (strcmp(arg, "-e") == 0 || strcmp(arg, "--code") == 0 || strcmp(arg, "--query") == 0) {
+            if (index + 1 >= argc) {
+                fprintf(stderr, "error: %s requires an argument\n", arg);
+                return 3;
+            }
+            code_argument = argv[++index];
+            continue;
+        }
+        if (strcmp(arg, "--tokens") == 0) {
+            show_tokens = 1;
+            continue;
+        }
+        if (strcmp(arg, "--ast") == 0) {
+            show_ast = 1;
+            continue;
+        }
+        if (strcmp(arg, "--no-ast") == 0) {
+            show_ast = 0;
+            continue;
+        }
+        if (strcmp(arg, "--json") == 0) {
+            json_mode = 1;
+            continue;
+        }
+        if (strcmp(arg, "--quiet") == 0) {
+            quiet = 1;
+            continue;
+        }
+        if (arg[0] == '-') {
+            fprintf(stderr, "error: unrecognized option '%s'\n", arg);
+            return 3;
+        }
+        if (file_path != NULL) {
+            fprintf(stderr, "error: only one input file may be specified\n");
+            return 3;
+        }
+        file_path = arg;
+    }
+
+    if (code_argument != NULL) {
+        source_text = duplicate_string(code_argument);
+    } else if (file_path != NULL) {
+        source_text = read_file(file_path);
+        if (source_text == NULL) {
+            return 3;
+        }
+    } else {
+        source_text = read_stream(stdin);
+    }
+
+    strip_utf8_bom(source_text);
+
+    diag_init(&diagnostics);
+    g_diagnostics = &diagnostics;
+    g_show_tokens = show_tokens && !json_mode;
+    g_json_mode = json_mode;
+    if (json_mode) {
+        json_tokens_init();
+    }
+
+    yy_scan_string(source_text);
+    parse_status = yyparse();
+    yylex_destroy();
+
+    lex_errors = count_code_prefix(&diagnostics, 'L');
+    parse_errors = count_code_prefix(&diagnostics, 'P');
+    syntax_ok = (parse_status == 0 && lex_errors == 0 && parse_errors == 0);
+
+    if (syntax_ok) {
+        semantic_validate_program(g_program, &diagnostics);
+    }
+
+    semantic_errors = count_code_prefix(&diagnostics, 'S');
+
+    if (!syntax_ok) {
+        exit_code = 1;
+    } else if (semantic_errors > 0) {
+        exit_code = 2;
+    } else {
+        exit_code = 0;
+    }
+
+    if (json_mode) {
+        json_print_result(g_program, &diagnostics, syntax_ok, lex_errors);
+        json_tokens_free();
+    } else {
+        if (!quiet && show_ast && syntax_ok) {
+            print_human_ast(g_program);
+        }
+        if (diagnostics.count > 0) {
+            diag_print(&diagnostics);
+        }
+        if (!quiet) {
+            if (exit_code == 0) {
+                printf("\nStatus: VALID - switch statement validated with 0 errors\n");
+            } else if (exit_code == 1) {
+                printf("\nStatus: FAILED - syntax/lexical error encountered\n");
+            } else {
+                printf("\nStatus: FAILED - %d semantic error(s) detected\n", semantic_errors);
+            }
+        }
+    }
+
+    program_free(g_program);
+    diag_free(&diagnostics);
+    free(source_text);
+
+    return exit_code;
+}
