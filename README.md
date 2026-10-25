@@ -103,3 +103,16 @@ compiler\bin\switchc.exe --tokens -e "switch (x) { case 'A': break; }"
 # Emit JSON contract
 compiler\bin\switchc.exe --json -e "switch (x) { case 1: break; default: break; }"
 ```
+
+## Team Members
+
+This is a **Compiler Design** course project built collaboratively by:
+
+| # | Name | GitHub | Role / Component | Files |
+| --- | --- | --- | --- | --- |
+| 1 | **Karthik** | [@KarthikSambhuR](https://github.com/KarthikSambhuR) | Project Architect, Web UI & Backend Bridge | `frontend/`, `backend/server.py`, `README.md` |
+| 2 | **Junia Alex** | [@JuniaAlex](https://github.com/JuniaAlex) | Lexical Analyzer (Flex Scanner) | `compiler/src/lexer.l`, `compiler/src/driver.h` |
+| 3 | **Elbin George** | [@ElbinGeorge](https://github.com/ElbinGeorge) | Syntax Analyzer & Grammar (Bison LALR(1)) | `compiler/src/parser.y` |
+| 4 | **Joel** | | Semantic Analyzer & Duplicate Case Detector | `compiler/src/semantic.c` |
+| 5 | **Christi** | | AST Data Structures & Core Header | `compiler/src/ast.c`, `compiler/src/switchc.h` |
+| 6 | **Joyel Shaji** | | Compiler Driver, JSON Output & Support Utilities | `compiler/src/main.c`, `compiler/src/json_output.c`, `compiler/src/json_output.h`, `compiler/src/support.c` |
